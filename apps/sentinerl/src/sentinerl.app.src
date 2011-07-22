@@ -1,0 +1,14 @@
+{application, sentinerl,
+ [
+  {description, ""},
+  {vsn, "1.0.0"},
+  {modules, [sentinerl, id_manager, riak_pool]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { sentinerl_app, []}},
+  {env, []}
+ ]}.
+
