@@ -2,11 +2,13 @@
 %% Created: 2011.07.19
 -module(sentinerl).
 -vsn("1.0.0").
--export([first/2,
+-export([first/1,
          next/2,
-         last/2]).
+         last/1]).
 
-first(Name, Checkpoint) ->
+%% Uses 'first' as the checkpoint
+first(Name) ->
+  Checkpoint = first,
   Timestamp = timestamp(),
   Iteration = id_manager:next_id(Name),
   Bucket = farm_tools:binarize(Name),
@@ -22,7 +24,9 @@ next(Name, Checkpoint) ->
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
   riak_pool:persist(Bucket, Key, O).
 
-last(Name, Checkpoint) ->
+%% Uses 'last' as the checkpoint
+last(Name) ->
+  Checkpoint = last,
   Timestamp = timestamp(),
   Iteration = id_manager:this_id(Name),
   Bucket = farm_tools:binarize(Name),

@@ -1,14 +1,15 @@
 -module(sentinerl_mr).
 -compile(export_all).
 
-do_job() ->
+do_job(Bucket) ->
   {ok, Client} = riak:local_client(),
-  Keys = [ {<<"test_3">>,<<"1-a">>}, {<<"test_3">>,<<"1-b">>} ],
+  %Keys = [ {Bucket,<<"1-a">>}, {Bucket,<<"1-b">>} ],
   BinToTerm = {map, {modfun, sentinerl_mr,binary_to_term}, none, false},
-  PhaseGroup = {reduce, {modfun, sentinerl_mr,group}, none, false},
-  PhaseMeasure = {map, {modfun, sentinerl_mr,group}, none, false},
-  PhaseAggregate = {reduce, {modfun, sentinerl_mr,group}, none, true},
-  Client:mapred(Keys, [BinToTerm, PhaseGroup, PhaseMeasure, PhaseAggregate]).
+  PhaseGroup = {reduce, {modfun, sentinerl_mr,group}, Bucket, false},
+  ToRiak = {reduce, {modfun,sentinerl_mr,reduce_to_keydata}, none,false},
+  PhaseMeasure = {map, {modfun, sentinerl_mr,measure}, none, false},
+  PhaseAggregate = {reduce, {modfun, sentinerl_mr,aggregate}, none, true},
+  Client:mapred_bucket(Bucket, [BinToTerm, PhaseGroup, ToRiak, PhaseMeasure, PhaseAggregate]).
 
 binary_to_term(RiakObject, _, _) ->
   Raw = riak_object:get_value(RiakObject),
@@ -20,37 +21,65 @@ binary_to_term(RiakObject, _, _) ->
   [ Term ].
 
 
+%% Reduce phase that takes a list output and creates a list of riak input
+%% tuples for subsequent map phases
+reduce_to_keydata(List, _Arg) ->
+  io:format("[sentinerl_mr:reduce_to_keydata] Input = ~p~n", [List]),
+  Checkpoint = first,
+  %% TODO: Use Arg as a transform function
+  Fn = fun({Iteration,ItList}) ->
+    Bucket = proplists:get_value(bucket,ItList),
+    Key = list_to_binary(lists:concat([Iteration,"-",Checkpoint])),
+    {{Bucket,Key},{Iteration,ItList}}
+  end,
+  Out = lists:map(Fn,List),
+  io:format("[sentinerl_mr:reduce_to_keydata] Output = ~p~n", [Out]),
+  Out.
+
+
+fold_group_input({Iteration, Checkpoints}, Acc, _) when is_list(Checkpoints) ->
+  io:format("[sentinerl_mr:group]~n  Input = ~p~n  Acc = ~p~n", [{Iteration,Checkpoints},Acc]),
+  ItNew = case proplists:get_value(Iteration,Acc) of
+    undefined -> Checkpoints;
+    ItOld -> lists:merge(lists:sort(ItOld),lists:sort(Checkpoints))
+  end,
+  lists:keystore(Iteration,1, Acc, {Iteration,ItNew});
+  
+fold_group_input(Input, Acc, Bucket) when is_list(Input) ->
+  io:format("[sentinerl_mr:group]~n  Input = ~p~n  Acc = ~p~n", [Input,Acc]),
+  Iteration = proplists:get_value(iteration,Input),
+  Checkpoint = proplists:get_value(checkpoint,Input),
+  Timestamp = proplists:get_value(timestamp,Input),
+  Next = case proplists:get_value(Iteration, Acc) of
+    undefined ->
+      [ {Iteration, [{Checkpoint,Timestamp}, {bucket,Bucket}]} | Acc ];
+    Checkpoints when is_list(Checkpoints) ->
+      lists:keyreplace(Iteration,1,Acc,
+        {Iteration, [{Checkpoint,Timestamp}|Checkpoints]} );
+    Other ->
+      io:format("[sentinerl_mr:group] Oops, wasn't expecting '~p'~n", [Other]),
+      Acc
+  end,
+  io:format("[sentinerl_mr:group]~n  Next = ~p~n", [Next]),
+  Next.
+  
+
+
 %% Reduce phase to group checkpoints by name and iteration
 %% In (Name):
 %%   [ [ {name,Name}, {iteration,Iteration},
 %%     {checkpoint,Checkpoint}, {timestamp,Timestamp} ] ]
 %% Out:
-%%   [ {Iteration, [ {Checkpoint,Timestamp} ] } ]
-group(RawList, Arg) -> 
+%%   [ {Iteration, [ {bucket,Bucket} | [{Checkpoint,Timestamp}] ] } ]
+group(RawList, Bucket) -> 
   %List = lists:filter(
   %  fun(X) -> proplists:get_value(name, X) == Arg end, RawList),
   io:format("[sentinerl_mr:group] Input = ~p~n", [RawList]),
-  io:format("[sentinerl_mr:group] Arg = ~p~n", [Arg]),
-  Fn = fun(X, Acc) -> 
-    io:format("[sentinerl_mr:group] X = ~p~n Acc = ~p~n", [X,Acc]),
-    Iteration = proplists:get_value(iteration,X),
-    Checkpoint = proplists:get_value(checkpoint,X),
-    Timestamp = proplists:get_value(timestamp,X),
-    case proplists:get_value(Iteration, Acc) of
-      undefined ->
-        [ {Iteration, [{Checkpoint,Timestamp}]} | Acc ];
-      Checkpoints when is_list(Checkpoints) ->
-        lists:keyreplace(Iteration,1,Acc,
-          {Iteration, [{Checkpoint,Timestamp}|Checkpoints]} );
-      Other ->
-        io:format("[sentinerl_mr:group] Oops, wasn't expecting '~p'~n", [Other]),
-        Acc
-    end
-  end,
+  io:format("[sentinerl_mr:group] Bucket = ~p~n", [Bucket]),
+  Fn = fun(X, Acc) -> fold_group_input(X,Acc,Bucket) end,
   Out = lists:foldl(Fn, [], RawList),
   io:format("[sentinerl_mr:group] Output = ~p~n", [Out]),
   Out.
-
 
 %% Map phase to calculate the times between two checkpoints
 %% In (CheckpointA, CheckpointB):
@@ -58,23 +87,20 @@ group(RawList, Arg) ->
 %% Out:
 %%   [ {Iteration, [ {start,CheckpointA}, {stop,CheckpointB},
 %%     {duration,Duration} ]} ]
-%measure(RiakObject, _, Arg) ->
-measure(O, _, Arg) ->
+measure(_RiakObject, O, Arg) ->
   io:format("[sentinerl_mr:measure] Input = ~p~n", [O]),
   [CheckpointA, CheckpointB] = case Arg of
     [A,B] -> [A,B];
-    _ -> [a,b]
+    _ -> [first,last]
   end,
-  Fn = fun(X) ->
-    {Iteration, List} = X,
-    TimestampA = proplists:get_value(CheckpointA,List),
-    TimestampB = proplists:get_value(CheckpointB,List),
-    Duration = TimestampB - TimestampA,
-    {Iteration, [{start,CheckpointA}, {stop,CheckpointB}, {duration,Duration}] }
-  end,
-  Out = lists:map(Fn, O),
-  io:format("[sentinerl_mr:measure] Output = ~p~n", [Out]),
-  Out.
+  {Iteration, List} = O,
+  TimestampA = proplists:get_value(CheckpointA,List, not_found_a),
+  TimestampB = proplists:get_value(CheckpointB,List, not_found_b),
+  %% TODO Add check to ensure these values exist
+  Duration = TimestampB - TimestampA,
+  Out = {Iteration,
+    [{start,CheckpointA}, {stop,CheckpointB}, {duration,Duration}] },
+  [Out].
 
 
 %% Reduce phase to run aggregate statistics on the measurements
@@ -84,6 +110,7 @@ measure(O, _, Arg) ->
 %% Out:
 %%   [ {start,CheckpointA}, {stop,CheckpointB},
 %%     {min,Min}, {max,Max}, {avg,Avg}]
+aggregate([], _Arg) -> [];
 aggregate(List, _Arg) ->
   io:format("[sentinerl_mr:aggregate] Input = ~p~n", [List]),
   [{_,Sample}|_] = List,
