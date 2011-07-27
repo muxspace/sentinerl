@@ -100,6 +100,7 @@ measure(_RiakObject, O, Arg) ->
   Duration = TimestampB - TimestampA,
   Out = {Iteration,
     [{start,CheckpointA}, {stop,CheckpointB}, {duration,Duration}] },
+  io:format("[sentinerl_mr:measure] Output = ~p~n", [[Out]]),
   [Out].
 
 
@@ -128,7 +129,7 @@ aggregate(List, _Arg) ->
   end,
   Out = lists:foldl(Fn, [], List),
   Out1 = [{start,Start}, {stop,Stop}] ++ Out,
-  io:format("[sentinerl_mr:measure] Output = ~p~n", [Out1]),
+  io:format("[sentinerl_mr:aggregate] Output = ~p~n", [Out1]),
   Out1.
 
 
