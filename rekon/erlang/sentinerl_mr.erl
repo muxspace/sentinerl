@@ -5,12 +5,13 @@ do_job(Bucket) ->
   {ok, Client} = riak:local_client(),
   %Keys = [ {Bucket,<<"1-a">>}, {Bucket,<<"1-b">>} ],
   BinToTerm = {map, {modfun, sentinerl_mr,binary_to_term}, none, false},
-  PhaseGroup = {reduce, {modfun, sentinerl_mr,group}, Bucket, false},
+  PhaseGroup = {reduce, {modfun, sentinerl_mr,group}, none, false},
   ToRiak = {reduce, {modfun,sentinerl_mr,reduce_to_keydata}, none,false},
   PhaseMeasure = {map, {modfun, sentinerl_mr,measure}, none, false},
   PhaseAggregate = {reduce, {modfun, sentinerl_mr,aggregate}, none, true},
   Client:mapred_bucket(Bucket, [BinToTerm, PhaseGroup, ToRiak, PhaseMeasure, PhaseAggregate]).
 
+%% OBSOLETE Use masseuse:binary_to_term() instead
 binary_to_term(RiakObject, _, _) ->
   Raw = riak_object:get_value(RiakObject),
   case is_binary(Raw) of
@@ -23,14 +24,12 @@ binary_to_term(RiakObject, _, _) ->
 
 %% Reduce phase that takes a list output and creates a list of riak input
 %% tuples for subsequent map phases
+%% OBSOLETE Use masseuse:as_keydata() instead
 reduce_to_keydata(List, _Arg) ->
   io:format("[sentinerl_mr:reduce_to_keydata] Input = ~p~n", [List]),
-  Checkpoint = first,
   %% TODO: Use Arg as a transform function
   Fn = fun({Iteration,ItList}) ->
-    Bucket = proplists:get_value(bucket,ItList),
-    Key = list_to_binary(lists:concat([Iteration,"-",Checkpoint])),
-    {{Bucket,Key},{Iteration,ItList}}
+    {{none,none},{Iteration,ItList}}
   end,
   Out = lists:map(Fn,List),
   io:format("[sentinerl_mr:reduce_to_keydata] Output = ~p~n", [Out]),
@@ -45,14 +44,14 @@ fold_group_input({Iteration, Checkpoints}, Acc, _) when is_list(Checkpoints) ->
   end,
   lists:keystore(Iteration,1, Acc, {Iteration,ItNew});
   
-fold_group_input(Input, Acc, Bucket) when is_list(Input) ->
+fold_group_input(Input, Acc, _) when is_list(Input) ->
   io:format("[sentinerl_mr:group]~n  Input = ~p~n  Acc = ~p~n", [Input,Acc]),
   Iteration = proplists:get_value(iteration,Input),
   Checkpoint = proplists:get_value(checkpoint,Input),
   Timestamp = proplists:get_value(timestamp,Input),
   Next = case proplists:get_value(Iteration, Acc) of
     undefined ->
-      [ {Iteration, [{Checkpoint,Timestamp}, {bucket,Bucket}]} | Acc ];
+      [ {Iteration, [{Checkpoint,Timestamp}]} | Acc ];
     Checkpoints when is_list(Checkpoints) ->
       lists:keyreplace(Iteration,1,Acc,
         {Iteration, [{Checkpoint,Timestamp}|Checkpoints]} );
