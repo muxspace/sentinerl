@@ -95,6 +95,7 @@ handle_call({retrieve, {B,K}}, _From, #state{}=State) ->
   {ok, RObject} = riakc_pb_socket:get(Pid, B,K),
   {reply, riakc_obj:get_value(RObject), State#state{pool=Pool}};
 
+%% This is slow and will likely cause a timeout
 handle_call({retrieve, B}, _From, #state{}=State) ->
   {ok, Pid, Pool} = pool_connection(State#state.pool),
   {ok, Ks} = riakc_pb_socket:list_keys(Pid, B),

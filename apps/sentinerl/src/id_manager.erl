@@ -9,7 +9,7 @@
 %% This is a tuple list for each id type
 %% TODO The last_ids needs to be persisted unless the id has a built-in
 %% timestamp component
--record(state, {last_ids=[]}).
+-record(state, {all_ids=[], last_ids=[]}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EXPORTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -51,15 +51,15 @@ start_link() ->
 
 init(_) ->
   %process_flag(trap_exit, true),
-  LastIds = riak_pool:retrieve(<<"id.manager">>),
-  {ok, #state{last_ids=LastIds}}.
+  AllIds = riak_pool:retrieve(<<"id.manager">>, <<".all_ids">>),
+  LastIds = [riak_pool:retrieve(<<"id.manager">>,Id) || Id <- AllIds],
+  {ok, #state{last_ids=LastIds, all_ids=AllIds}}.
 
 % Persisting here isn't working
 terminate(_Reason, _State) ->
   ok.
 
-handle_call(which_ids, _From, #state{last_ids=Last}=State) ->
-  Ids = [ K || {K,_} <- Last ],
+handle_call(which_ids, _From, #state{all_ids=Ids}=State) ->
   {reply, Ids, State};
   
 handle_call({this_id,What}, _From, State) ->
@@ -77,6 +77,8 @@ handle_call({next_id,What}, _From, State) ->
       Id = LastId + 1,
       LastIds = lists:keyreplace(What,1, State#state.last_ids, {What,Id});
     _ -> Id = 1,
+      AllIds = [What|State#state.all_ids],
+      riak_pool:persist(<<"id.manager">>, <<".all_ids">>, AllIds),
       LastIds = [{What,Id} | State#state.last_ids]
   end,
   riak_pool:persist(<<"id.manager">>, farm_tools:binarize([What]), {What,Id}),
