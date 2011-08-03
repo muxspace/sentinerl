@@ -1,2 +1,0 @@
--module(sentinerl_tests).
-
