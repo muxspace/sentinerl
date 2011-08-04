@@ -53,8 +53,8 @@ init(_) ->
   %process_flag(trap_exit, true),
   %AllIds = riak_pool:retrieve(<<"id.manager">>, <<".index">>),
   %LastIds = [riak_pool:retrieve(<<"id.manager">>,Id) || Id <- AllIds],
-  AllIds = riakpool:get(<<"id.manager">>, <<".index">>),
-  LastIds = [riakpool:get(<<"id.manager">>,Id) || Id <- AllIds],
+  AllIds = riakpool_client:get(<<"id.manager">>, <<".index">>),
+  LastIds = [riakpool_client:get(<<"id.manager">>,Id) || Id <- AllIds],
   {ok, #state{last_ids=LastIds, all_ids=AllIds}}.
 
 % Persisting here isn't working
