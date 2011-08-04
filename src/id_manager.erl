@@ -65,6 +65,7 @@ handle_call({next_id,What}, _From, State) ->
   Tuple = lists:keyfind(What,1, State#state.last_ids),
   case Tuple of
     {_,LastId} ->
+      AllIds = State#state.all_ids,
       Id = LastId + 1,
       LastIds = lists:keyreplace(What,1, State#state.last_ids, {What,Id});
     _ -> Id = 1,
@@ -76,7 +77,7 @@ handle_call({next_id,What}, _From, State) ->
   %riak_pool:persist(<<"id.manager">>, farm_tools:binarize([What]), {What,Id}),
   riak_util:put(<<"id.manager">>, farm_tools:binarize([What]), {What,Id}),
   %?persist({What,NewId}, State#state.riak_pid),
-  {reply, Id, State#state{last_ids=LastIds}};
+  {reply, Id, State#state{last_ids=LastIds, all_ids=AllIds}};
 
 handle_call(stop, _From, State) ->
   {stop, normal, ok, State}.
