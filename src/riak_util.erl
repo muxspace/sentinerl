@@ -5,6 +5,13 @@
 -compile(export_all).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EXPORTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+put(B,K,O) ->
+  riakpool_client:put(B, K, O).
+
+get(B,K) ->
+  {ok,Binary} = riakpool_client:get(B, K),
+  binary_to_term(Binary).
+
 
 new_connection() ->
   {ok, App} = application:get_application(),

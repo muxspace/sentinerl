@@ -27,22 +27,11 @@ next_id(What) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PRIVATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 node_id() -> {global, id_manager}.
 
-%% TODO Put this in a separate process to improve performance
-%persist({What,Id}, Pid) ->
-%  Object = riakc_obj:new(<<"ids">>, farm_tools:binarize([What]), {What,Id}),
-%  ?verbose("Putting ~p => ~p~n",[What,Id]),
-%  riakc_pb_socket:put(Pid, Object).
-
-%get_ids(Pid) ->
-%  ?info("Starting socket client"),
-%  %{ok, Pid} = riakc_pb_socket:start_link("127.0.0.1", 8081),
-%  pong = riakc_pb_socket:ping(Pid),
-%  {ok, Ks} = riakc_pb_socket:list_keys(Pid, <<"ids">>),
-%  Fn = fun(K) ->
-%    {ok, O} = riakc_pb_socket:get(Pid, <<"ids">>, K),
-%    binary_to_term(riakc_obj:get_value(O))
-%  end,
-%  lists:map(Fn, Ks).
+get_index(Bucket) ->
+  case riak_util:get(Bucket, <<".index">>) of
+    {error,notfound} -> [];
+    V -> V
+  end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GEN_SERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -53,8 +42,8 @@ init(_) ->
   %process_flag(trap_exit, true),
   %AllIds = riak_pool:retrieve(<<"id.manager">>, <<".index">>),
   %LastIds = [riak_pool:retrieve(<<"id.manager">>,Id) || Id <- AllIds],
-  AllIds = riakpool_client:get(<<"id.manager">>, <<".index">>),
-  LastIds = [riakpool_client:get(<<"id.manager">>,Id) || Id <- AllIds],
+  AllIds = get_index(<<"id.manager">>),
+  LastIds = [riak_util:get(<<"id.manager">>,Id) || Id <- AllIds],
   {ok, #state{last_ids=LastIds, all_ids=AllIds}}.
 
 % Persisting here isn't working
@@ -81,11 +70,11 @@ handle_call({next_id,What}, _From, State) ->
     _ -> Id = 1,
       AllIds = [What|State#state.all_ids],
       %riak_pool:persist(<<"id.manager">>, <<".all_ids">>, AllIds),
-      riakpool:persist(<<"id.manager">>, <<".index">>, AllIds),
+      riak_util:put(<<"id.manager">>, <<".index">>, AllIds),
       LastIds = [{What,Id} | State#state.last_ids]
   end,
   %riak_pool:persist(<<"id.manager">>, farm_tools:binarize([What]), {What,Id}),
-  riakpool:put(<<"id.manager">>, farm_tools:binarize([What]), {What,Id}),
+  riak_util:put(<<"id.manager">>, farm_tools:binarize([What]), {What,Id}),
   %?persist({What,NewId}, State#state.riak_pid),
   {reply, Id, State#state{last_ids=LastIds}};
 
