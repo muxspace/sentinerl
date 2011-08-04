@@ -2,7 +2,7 @@
  [
   {description, ""},
   {vsn, "1.0.0"},
-  {modules, [sentinerl, id_manager, riak_pool]},
+  {modules, [sentinerl, id_manager]},
   {registered, []},
   {applications, [
                   kernel,
