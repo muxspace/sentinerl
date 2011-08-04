@@ -9,8 +9,10 @@ put(B,K,O) ->
   riakpool_client:put(B, K, O).
 
 get(B,K) ->
-  {ok,Binary} = riakpool_client:get(B, K),
-  binary_to_term(Binary).
+  case riakpool_client:get(B, K) of
+    {ok,Binary} -> binary_to_term(Binary);
+    {error,E} -> {error,E}
+  end.
 
 
 new_connection() ->
