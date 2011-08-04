@@ -14,7 +14,8 @@ first(Name) ->
   Bucket = farm_tools:binarize(Name),
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
-  riak_pool:persist(Bucket, Key, O).
+  %riak_pool:persist(Bucket, Key, O).
+  riakpool:put(Bucket, Key, O).
 
 next(Name, Checkpoint) ->
   Timestamp = timestamp(),
@@ -22,7 +23,8 @@ next(Name, Checkpoint) ->
   Bucket = farm_tools:binarize(Name),
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
-  riak_pool:persist(Bucket, Key, O).
+  %riak_pool:persist(Bucket, Key, O).
+  riakpool:put(Bucket, Key, O).
 
 %% Uses 'last' as the checkpoint
 last(Name) ->
@@ -32,7 +34,8 @@ last(Name) ->
   Bucket = farm_tools:binarize(Name),
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
-  riak_pool:persist(Bucket, Key, O).
+  %riak_pool:persist(Bucket, Key, O).
+  riakpool:put(Bucket, Key, O).
 
 
 %% Returns milliseconds

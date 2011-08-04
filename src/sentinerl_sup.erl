@@ -23,8 +23,13 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    RiakPool = sup_util:config(riak_pool, riak_pool, []),
+    application:start(sasl),
+    application:start(riakpool),
+    riakpool:start_pool(riak_util:get_host(), riak_util:get_port()),
+
+    %RiakPool = sup_util:config(riak_pool, riak_pool, []),
     IdManager = sup_util:config(id_manager, id_manager,[]),
 
-    {ok, { {one_for_one, 5, 10}, [RiakPool, IdManager]} }.
+    %{ok, { {one_for_one, 5, 10}, [RiakPool, IdManager]} }.
+    {ok, { {one_for_one, 5, 10}, [IdManager]} }.
 

@@ -1,5 +1,5 @@
 REBAR:=rebar
-APPSRC:=apps/sentinerl/src/sentinerl.app.src
+APPSRC:=src/sentinerl.app.src
 VERSION:=$(shell grep vsn $(APPSRC) | awk -F\" '{print $$2}')
 
 
@@ -11,7 +11,7 @@ erl:
 	$(REBAR) get-deps compile
 
 test:
-	cp rekon/erlang/*.erl apps/sentinerl/src
+	cp rekon/erlang/*.erl src
 	$(REBAR) get-deps compile
 	@mkdir -p .eunit
 	$(REBAR) skip_deps=true eunit
@@ -27,8 +27,8 @@ release: all
 	tar jcf rel/sentinerl_$(VERSION).tbz2 -C rel sentinerl
 
 clean:
-	$(REBAR) clean
-	-rm -rvf deps ebin doc .eunit
+	$(REBAR) skip_deps=true clean
+	-rm -rvf ebin doc .eunit
 
 doc:
 	$(REBAR) doc

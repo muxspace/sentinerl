@@ -10,8 +10,8 @@ binary_to_term_test_() ->
 reduce_to_keydata_test_() ->
   O1 = {1, [{bucket,<<"temp">>}, {first,10}, {b,12}, {c,14}]},
   O2 = {2, [{bucket,<<"temp">>}, {last,11}, {b,13}, {c,15}]},
-  R1 = {{<<"temp">>,<<"1-first">>}, O1},
-  R2 = {{<<"temp">>,<<"2-first">>}, O2},
+  R1 = {{none,none}, O1},
+  R2 = {{none,none}, O2},
   Exp = [R1,R2],
   Act = sentinerl_mr:reduce_to_keydata([O1,O2],none),
   ?_assertEqual(Exp, Act).
@@ -29,7 +29,7 @@ group_test_() ->
          {iteration,1},
          {checkpoint,last},
          {timestamp,25}] ],
-  Exp = [ {1, [{last,25}, {b,20}, {first,15}, {bucket,<<"bucket">>}] } ],
+  Exp = [ {1, [{last,25}, {b,20}, {first,15}] } ],
   Act = sentinerl_mr:group(O, <<"bucket">>),
   ?_assertEqual(Exp, Act).
 
