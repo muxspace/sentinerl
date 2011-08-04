@@ -25,7 +25,8 @@ start_link() ->
 init([]) ->
     application:start(sasl),
     application:start(riakpool),
-    riakpool:start_pool(riak_util:get_host(), riak_util:get_port()),
+    {ok,App} = application:get_application(),
+    riakpool:start_pool(riak_util:get_host(App), riak_util:get_port(App)),
 
     %RiakPool = sup_util:config(riak_pool, riak_pool, []),
     IdManager = sup_util:config(id_manager, id_manager,[]),
