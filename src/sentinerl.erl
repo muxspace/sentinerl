@@ -3,8 +3,8 @@
 -module(sentinerl).
 -vsn("1.0.0").
 -export([first/1,
-         next/2,
-         last/1]).
+         next/2, next/3,
+         last/1, last/2]).
 
 %% Uses 'first' as the checkpoint
 first(Name) ->
@@ -15,11 +15,15 @@ first(Name) ->
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
   %riak_pool:persist(Bucket, Key, O).
-  riak_util:put(Bucket, Key, O).
+  riak_util:put(Bucket, Key, O),
+  Iteration.
 
 next(Name, Checkpoint) ->
-  Timestamp = timestamp(),
   Iteration = id_manager:this_id(Name),
+  next(Iteration, Name, Checkpoint).
+
+next(Iteration, Name, Checkpoint) ->
+  Timestamp = timestamp(),
   Bucket = farm_tools:binarize(Name),
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
@@ -28,9 +32,12 @@ next(Name, Checkpoint) ->
 
 %% Uses 'last' as the checkpoint
 last(Name) ->
+  Iteration = id_manager:this_id(Name),
+  last(Iteration,Name).
+
+last(Iteration, Name) ->
   Checkpoint = last,
   Timestamp = timestamp(),
-  Iteration = id_manager:this_id(Name),
   Bucket = farm_tools:binarize(Name),
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
