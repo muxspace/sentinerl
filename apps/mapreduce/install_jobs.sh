@@ -46,7 +46,9 @@ do_install_erlang()
 {
   echo "Installing erlang modules to $module_dir"
   sudo mkdir -p $module_dir
-  sudo erlc -o $module_dir rekon/erlang/*.erl
+  mkdir -p apps/mapreduce/ebin
+  erlc -o apps/mapreduce/ebin/ apps/mapreduce/src/*.erl
+  sudo cp apps/mapreduce/ebin/*.beam $module_dir
 
 }
 

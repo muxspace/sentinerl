@@ -11,8 +11,6 @@ erl:
 	$(REBAR) get-deps compile
 
 test:
-	cp rekon/erlang/*.erl src
-	$(REBAR) get-deps compile
 	@mkdir -p .eunit
 	$(REBAR) skip_deps=true eunit
 
@@ -20,7 +18,7 @@ update:
 	$(REBAR) update-deps
 
 install:
-	./rekon/install_jobs.sh -av $(HOST)
+	./apps/mapreduce/install_jobs.sh -av $(HOST)
 
 release: all
 	$(REBAR) generate

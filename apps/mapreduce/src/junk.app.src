@@ -1,0 +1,13 @@
+{application, junk,
+ [
+  {description, ""},
+  {vsn, "1.0.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { junk_app, []}},
+  {env, []}
+ ]}.
+
