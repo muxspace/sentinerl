@@ -2,15 +2,19 @@
 %% Created: 2011.07.19
 -module(sentinerl).
 -vsn("1.0.0").
--export([first/1,
+-export([first/1, first/2,
          next/2, next/3,
          last/1, last/2]).
 
+
 %% Uses 'first' as the checkpoint
 first(Name) ->
+  Iteration = id_manager:next_id(Name),
+  first(Iteration,Name).
+
+first(Iteration, Name) ->
   Checkpoint = first,
   Timestamp = timestamp(),
-  Iteration = id_manager:next_id(Name),
   Bucket = farm_tools:binarize(Name),
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
