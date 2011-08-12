@@ -17,7 +17,14 @@ test:
 update:
 	$(REBAR) update-deps
 
-install:
+mr:
+	$(REBAR) -C rebar.mr.config get-deps compile
+
+test-mr:
+	@mkdir -p .eunit
+	$(REBAR) -C rebar.mr.config skip_deps=true eunit
+
+install: mr
 	./apps/mapreduce/install_jobs.sh -av $(HOST)
 
 release: all
@@ -25,8 +32,8 @@ release: all
 	tar jcf rel/sentinerl_$(VERSION).tbz2 -C rel sentinerl
 
 clean:
-	$(REBAR) skip_deps=true clean
-	-rm -rvf ebin doc .eunit
+	$(REBAR) clean
+	-rm -rvf deps ebin doc .eunit
 
 doc:
 	$(REBAR) doc
