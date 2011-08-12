@@ -9,7 +9,7 @@
 
 %% Uses 'first' as the checkpoint
 first(Name) ->
-  Iteration = id_manager:next_id(Name),
+  Iteration = sentinerl_id_manager:next_id(Name),
   first(Iteration,Name).
 
 first(Iteration, Name) ->
@@ -19,11 +19,11 @@ first(Iteration, Name) ->
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
   %riak_pool:persist(Bucket, Key, O).
-  riak_util:put(Bucket, Key, O),
+  sentinerl_riak_util:put(Bucket, Key, O),
   Iteration.
 
 next(Name, Checkpoint) ->
-  Iteration = id_manager:this_id(Name),
+  Iteration = sentinerl_id_manager:this_id(Name),
   next(Iteration, Name, Checkpoint).
 
 next(Iteration, Name, Checkpoint) ->
@@ -32,11 +32,11 @@ next(Iteration, Name, Checkpoint) ->
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
   %riak_pool:persist(Bucket, Key, O).
-  riak_util:put(Bucket, Key, O).
+  sentinerl_riak_util:put(Bucket, Key, O).
 
 %% Uses 'last' as the checkpoint
 last(Name) ->
-  Iteration = id_manager:this_id(Name),
+  Iteration = sentinerl_id_manager:this_id(Name),
   last(Iteration,Name).
 
 last(Iteration, Name) ->
@@ -46,7 +46,7 @@ last(Iteration, Name) ->
   Key = farm_tools:binarize([Iteration, "-", Checkpoint]),
   O = checkpoint(Name,Iteration,Checkpoint,Timestamp),
   %riak_pool:persist(Bucket, Key, O).
-  riak_util:put(Bucket, Key, O).
+  sentinerl_riak_util:put(Bucket, Key, O).
 
 
 %% Returns milliseconds

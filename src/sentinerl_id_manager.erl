@@ -1,4 +1,4 @@
--module(id_manager).
+-module(sentinerl_id_manager).
 -behaviour(gen_server).
 -include("private_macros.hrl").
 -export([start_link/0, init/1, terminate/2]).
@@ -25,10 +25,10 @@ next_id(What) ->
   gen_server:call(node_id(), {next_id,What}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PRIVATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-node_id() -> {global, id_manager}.
+node_id() -> {global, sentinerl_id_manager}.
 
 get_index(Bucket) ->
-  case riak_util:get(Bucket, <<".index">>) of
+  case sentinerl_riak_util:get(Bucket, <<".index">>) of
     {error,notfound} -> [];
     V -> V
   end.
@@ -43,7 +43,7 @@ init(_) ->
   %AllIds = riak_pool:retrieve(<<"id.manager">>, <<".index">>),
   %LastIds = [riak_pool:retrieve(<<"id.manager">>,Id) || Id <- AllIds],
   AllIds = get_index(<<"id.manager">>),
-  LastIds = [riak_util:get(<<"id.manager">>,Id) || Id <- AllIds],
+  LastIds = [sentinerl_riak_util:get(<<"id.manager">>,Id) || Id <- AllIds],
   {ok, #state{last_ids=LastIds, all_ids=AllIds}}.
 
 % Persisting here isn't working
@@ -71,11 +71,11 @@ handle_call({next_id,What}, _From, State) ->
     _ -> Id = 1,
       AllIds = [What|State#state.all_ids],
       %riak_pool:persist(<<"id.manager">>, <<".all_ids">>, AllIds),
-      riak_util:put(<<"id.manager">>, <<".index">>, AllIds),
+      sentinerl_riak_util:put(<<"id.manager">>, <<".index">>, AllIds),
       LastIds = [{What,Id} | State#state.last_ids]
   end,
   %riak_pool:persist(<<"id.manager">>, farm_tools:binarize([What]), {What,Id}),
-  riak_util:put(<<"id.manager">>, farm_tools:binarize([What]), {What,Id}),
+  sentinerl_riak_util:put(<<"id.manager">>, farm_tools:binarize([What]), {What,Id}),
   %?persist({What,NewId}, State#state.riak_pid),
   {reply, Id, State#state{last_ids=LastIds, all_ids=AllIds}};
 

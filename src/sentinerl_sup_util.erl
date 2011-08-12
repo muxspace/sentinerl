@@ -1,4 +1,4 @@
--module(sup_util).
+-module(sentinerl_sup_util).
 -export([perm_spec/3, temp_spec/3, config/3]).
 
 %% This is deprecated. Use perm_spec instead

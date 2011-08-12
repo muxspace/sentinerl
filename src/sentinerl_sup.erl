@@ -26,10 +26,12 @@ init([]) ->
     application:start(sasl),
     application:start(riakpool),
     {ok,App} = application:get_application(),
-    riakpool:start_pool(riak_util:get_host(App), riak_util:get_port(App)),
+    riakpool:start_pool(sentinerl_riak_util:get_host(App),
+                        sentinerl_riak_util:get_port(App)),
 
     %RiakPool = sup_util:config(riak_pool, riak_pool, []),
-    IdManager = sup_util:config(id_manager, id_manager,[]),
+    IdManager = sentinerl_sup_util:config(
+      sentinerl_id_manager, sentinerl_id_manager,[]),
 
     %{ok, { {one_for_one, 5, 10}, [RiakPool, IdManager]} }.
     {ok, { {one_for_one, 5, 10}, [IdManager]} }.

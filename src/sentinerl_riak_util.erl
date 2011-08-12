@@ -1,6 +1,6 @@
 %% Author: Brian Lee Yung Rowe
 %% Created: 2011.07.19
--module(riak_util).
+-module(sentinerl_riak_util).
 -include("private_macros.hrl").
 -compile(export_all).
 
